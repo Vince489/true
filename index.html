@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixel Art Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+        }
+
+        canvas {
+            border: 1px solid #000;
+            width: 500px; /* Display canvas at 500px wide */
+            height: auto; /* Maintain aspect ratio */
+            margin-top: 20px;
+        }
+
+        #downloadLink {
+            display: none;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Pixel Art Generator</h1>
+    <input type="file" id="uploadImage" accept="image/*">
+    <div>
+        <label for="pixelSize">Pixel Size:</label>
+        <select id="pixelSize">
+            <option value="1">1x1</option>
+            <option value="2">2x2</option>
+            <option value="3">3x3</option>
+            <option value="4">4x4</option>
+            <option value="5">5x5</option>
+            <option value="6">6x6</option>
+            <option value="7">7x7</option>
+            <option value="8">8x8</option>
+            <option value="9">9x9</option>
+            <option value="10">10x10</option>
+            <option value="16">16x16</option>
+            <option value="32">32x32</option>
+        </select>
+        <button id="generateButton">Generate Pixel Art</button>
+    </div>
+    <canvas id="canvas"></canvas>
+    <a id="downloadLink" download="pixel-art.png">Download Pixel Art</a>
+
+    <script>
+        document.getElementById('generateButton').addEventListener('click', generatePixelArt);
+        document.getElementById('uploadImage').addEventListener('change', loadImage);
+
+        let img = new Image();
+
+        function loadImage(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function generatePixelArt() {
+            const pixelSize = parseInt(document.getElementById('pixelSize').value);
+
+            if (!img.src) {
+                alert('Please upload an image first!');
+                return;
+            }
+
+            // Calculate new dimensions
+            const outputWidth = Math.ceil(img.width / pixelSize);
+            const outputHeight = Math.ceil(img.height / pixelSize);
+
+            // Resize canvas to output dimensions
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = outputWidth;
+            canvas.height = outputHeight;
+
+            // Create a temporary canvas to sample the original image
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCanvas.width = img.width;
+            tempCanvas.height = img.height;
+            tempCtx.drawImage(img, 0, 0);
+
+            // Draw pixelated image onto the main canvas
+            for (let y = 0; y < outputHeight; y++) {
+                for (let x = 0; x < outputWidth; x++) {
+                    const startX = x * pixelSize;
+                    const startY = y * pixelSize;
+
+                    // Get the color of the top-left pixel of the current block
+                    const pixelData = tempCtx.getImageData(startX, startY, 1, 1).data;
+                    const [r, g, b] = pixelData;
+
+                    ctx.fillStyle = `rgb(${r},${g},${b})`;
+                    ctx.fillRect(x, y, 1, 1); // 1x1 block corresponds to a single pixel
+                }
+            }
+
+            // Scale up the image by 4x
+            const scalingFactor = 4;
+            const scaledCanvas = document.createElement('canvas');
+            const scaledCtx = scaledCanvas.getContext('2d');
+            scaledCanvas.width = canvas.width * scalingFactor;
+            scaledCanvas.height = canvas.height * scalingFactor;
+
+            // Draw scaled image
+            scaledCtx.imageSmoothingEnabled = false; // Ensure sharp edges
+            scaledCtx.drawImage(canvas, 0, 0, scaledCanvas.width, scaledCanvas.height);
+
+            // Update download link
+            const downloadLink = document.getElementById('downloadLink');
+            downloadLink.href = scaledCanvas.toDataURL();
+            downloadLink.style.display = 'inline-block';
+        }
+    </script>
+</body>
+</html>
